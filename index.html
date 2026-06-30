@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحديث رسائل التليجرام المجمعة - MedQuiz</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #10b981; /* لون أخضر دلالة على الإنجاز */
+            --secondary: #38bdf8;
+            --text: #f8fafc;
+        }
+        body {
+            margin: 0; padding: 20px;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: var(--card-bg);
+            padding: 25px; border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 100%; max-width: 600px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        p { text-align: center; color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px; }
+        
+        /* الصندوق الذكي اللي بيحافظ على التنسيق */
+        .editor-box {
+            width: 100%; min-height: 250px; max-height: 400px; overflow-y: auto;
+            background: #0b1120; border: 2px solid #334155; border-radius: 12px;
+            padding: 15px; color: #fff; font-size: 1rem; line-height: 1.6;
+            outline: none; transition: 0.3s; box-sizing: border-box;
+        }
+        .editor-box:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .editor-box a { color: var(--secondary); text-decoration: underline; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        button {
+            flex: 1; min-width: 150px; padding: 15px; border: none; border-radius: 12px;
+            font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: 0.3s; color: white;
+        }
+        .btn-process { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-process:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); }
+        
+        .btn-copy { background: linear-gradient(135deg, #38bdf8, #2563eb); }
+        .btn-copy:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(56, 189, 248, 0.4); }
+
+        .status { text-align: center; margin-top: 15px; font-weight: bold; font-size: 0.95rem; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>♻️ مصنع رسائل التليجرام</h2>
+        <p>انسخ الرسالة الكاملة من التليجرام (في وضع التعديل) والصقها في المربع المظلم تحت، لتغيير عشرات الروابط المخفية بضغطة واحدة مع الحفاظ على التنسيق والإيموجي.</p>
+        
+        <div id="rich-editor" class="editor-box" contenteditable="true"></div>
+        
+        <div class="btn-group">
+            <button class="btn-process" onclick="processLinks()">1. استبدال الروابط 🔄</button>
+            <button class="btn-copy" onclick="copyRichText()">2. نسخ الرسالة 📋</button>
+        </div>
+
+        <div id="status-msg" class="status"></div>
+    </div>
+
+    <script>
+        function processLinks() {
+            const editor = document.getElementById('rich-editor');
+            const status = document.getElementById('status-msg');
+            
+            if (editor.innerText.trim() === '') {
+                status.style.color = '#ef4444';
+                status.innerText = '⚠️ المربع فارغ، يرجى لصق الرسالة أولاً!';
+                return;
+            }
+
+            // الريجيكس الذكي: بيبحث عن أي لينك نتليفاي مخفي ويسحب الـ ID بتاعه
+            // بيسحب من أول ? لحد علامة التنصيص أو المسافة
+            const regex = /https:\/\/[a-zA-Z0-9-.]*netlify\.app\/(\?[^"'\s<]*)/g;
+            
+            const originalHTML = editor.innerHTML;
+            // فحص كم رابط تم العثور عليه
+            const matchCount = (originalHTML.match(regex) || []).length;
+
+            if (matchCount > 0) {
+                // استبدال الروابط القديمة بالدومين الجديد + تركيب الـ ID
+                const newHTML = originalHTML.replace(regex, 'https://m-site.github.io/rafik-altib/$1');
+                editor.innerHTML = newHTML;
+                
+                status.style.color = '#10b981';
+                status.innerText = `✅ روعة! تم اصطياد وتحديث (${matchCount}) رابط في الكواليس.`;
+            } else {
+                status.style.color = '#f59e0b';
+                status.innerText = '⚠️ لم يتم العثور على أي روابط Netlify قديمة في هذا النص.';
+            }
+        }
+
+        function copyRichText() {
+            const editor = document.getElementById('rich-editor');
+            const status = document.getElementById('status-msg');
+
+            // تظليل النص بالكامل برمجياً عشان ننسخه بتنسيقه (HTML) مش كنص عادي
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            try {
+                // أمر النسخ
+                document.execCommand('copy');
+                status.style.color = '#38bdf8';
+                status.innerText = '📋 تم النسخ بنجاح! روح للتليجرام واعمل (تعديل > لصق).';
+            } catch (err) {
+                status.style.color = '#ef4444';
+                status.innerText = '❌ فشل النسخ التلقائي، يرجى تظليل النص ونسخه يدوياً.';
+            }
+            
+            // إزالة التظليل بعد النسخ
+            selection.removeAllRanges();
+        }
+    </script>
+
+</body>
+</html>
