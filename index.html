@@ -8,7 +8,7 @@
         :root {
             --bg: #0f172a;
             --card-bg: #1e293b;
-            --primary: #10b981; /* لون أخضر دلالة  على الإنجاز */
+            --primary: #10b981; 
             --secondary: #38bdf8;
             --text: #f8fafc;
         }
@@ -30,7 +30,7 @@
         h2 { text-align: center; color: var(--primary); margin-top: 0; }
         p { text-align: center; color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px; }
         
-        /* الصندوق الذكي  اللي بيحافظ على التنسيق */
+        /* الصندوق الذكي اللي بيحافظ على التنسيق والاقتباسات */
         .editor-box {
             width: 100%; min-height: 250px; max-height: 400px; overflow-y: auto;
             background: #0b1120; border: 2px solid #334155; border-radius: 12px;
@@ -39,6 +39,19 @@
         }
         .editor-box:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
         .editor-box a { color: var(--secondary); text-decoration: underline; }
+        
+        /* ستايل مخصص للحفاظ على شكل الاقتباسات (Quotes) داخل الأداة */
+        .editor-box blockquote {
+            border-right: 4px solid var(--primary);
+            padding-right: 12px;
+            margin: 10px 0;
+            color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px 0 0 4px;
+        }
+        .editor-box pre, .editor-box code {
+            background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace;
+        }
         
         .btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         button {
@@ -58,7 +71,7 @@
 
     <div class="container">
         <h2>♻️ مصنع رسائل التليجرام</h2>
-        <p>انسخ الرسالة الكاملة من التليجرام (في وضع التعديل) والصقها في المربع المظلم تحت، لتغيير عشرات الروابط المخفية بضغطة واحدة مع الحفاظ على التنسيق والإيموجي.</p>
+        <p>انسخ الرسالة الكاملة من التليجرام والصقها هنا لتغيير الروابط مع الحفاظ التام على الاقتباسات والتنسيق.</p>
         
         <div id="rich-editor" class="editor-box" contenteditable="true"></div>
         
@@ -81,24 +94,37 @@
                 return;
             }
 
-            // الريجيكس الذكي: بيبحث عن أي لينك نتليفاي مخفي ويسحب الـ ID بتاعه
-            // بيسحب من أول ? لحد علامة التنصيص أو المسافة
-            const regex = /https:\/\/[a-zA-Z0-9-.]*netlify\.app\/(\?[^"'\s<]*)/g;
-            
-            const originalHTML = editor.innerHTML;
-            // فحص كم رابط تم العثور عليه
-            const matchCount = (originalHTML.match(regex) || []).length;
+            // الطريقة الجراحية الجديدة: البحث عن الروابط (a tags) وتعديلها فقط دون المساس بالـ HTML
+            const links = editor.querySelectorAll('a');
+            let matchCount = 0;
+
+            links.forEach(link => {
+                const currentHref = link.getAttribute('href');
+                
+                // فحص إذا كان الرابط يخص Netlify
+                if (currentHref && currentHref.includes('netlify.app')) {
+                    try {
+                        const urlObj = new URL(currentHref);
+                        const queryString = urlObj.search; // يسحب الـ ID
+                        const hashString = urlObj.hash;    // لو في Hash
+                        
+                        // تركيب الرابط الجديد وتحديثه في الكواليس
+                        const newBaseUrl = "https://m-site.github.io/rafik-altib/";
+                        link.setAttribute('href', newBaseUrl + queryString + hashString);
+                        
+                        matchCount++;
+                    } catch (e) {
+                        console.error('رابط غير صالح:', currentHref);
+                    }
+                }
+            });
 
             if (matchCount > 0) {
-                // استبدال الروابط القديمة بالدومين الجديد + تركيب الـ ID
-                const newHTML = originalHTML.replace(regex, 'https://m-site.github.io/rafik-altib/$1');
-                editor.innerHTML = newHTML;
-                
                 status.style.color = '#10b981';
-                status.innerText = `✅ روعة! تم اصطياد وتحديث (${matchCount}) رابط في الكواليس.`;
+                status.innerText = `✅ روعة! تم اصطياد وتحديث (${matchCount}) رابط مع الحفاظ التام على الاقتباسات!`;
             } else {
                 status.style.color = '#f59e0b';
-                status.innerText = '⚠️ لم يتم العثور على أي روابط Netlify قديمة في هذا النص.';
+                status.innerText = '⚠️ لم يتم العثور على أي روابط Netlify قديمة.';
             }
         }
 
@@ -106,7 +132,6 @@
             const editor = document.getElementById('rich-editor');
             const status = document.getElementById('status-msg');
 
-            // تظليل النص بالكامل برمجياً عشان ننسخه بتنسيقه (HTML) مش كنص عادي
             const selection = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(editor);
@@ -114,7 +139,6 @@
             selection.addRange(range);
 
             try {
-                // أمر النسخ
                 document.execCommand('copy');
                 status.style.color = '#38bdf8';
                 status.innerText = '📋 تم النسخ بنجاح! روح للتليجرام واعمل (تعديل > لصق).';
@@ -123,7 +147,6 @@
                 status.innerText = '❌ فشل النسخ التلقائي، يرجى تظليل النص ونسخه يدوياً.';
             }
             
-            // إزالة التظليل بعد النسخ
             selection.removeAllRanges();
         }
     </script>
